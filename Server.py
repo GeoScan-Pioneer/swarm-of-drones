@@ -104,7 +104,7 @@ class Server():
     def create_message_CA(self):
         return struct.pack(">2s1c", b'CA', b"\n")
 
-    # New Coordinates
+    # New Coordinates + X + Y + Z
     def create_message_NC(self, X, Y, Z):
         return struct.pack(">2sfff1c", b'NC', X, Y, Z, b"\n")
 
