@@ -1,116 +1,207 @@
 import socket
-# import picamera
+#import picamera
 import threading
 import serial
 import time
+import cv2
+import numpy as np
+import struct
+
 
 
 class Client():
-    def __init__(self, id, port, ind_copter):
+    def __init__(self, id, port, ind_copter, port_uart='COM1', boud_uart=9600, timeout_uart=1):
+        # Параметры дял сокета
         self.id_server = id
         self.port_server = port
         self.ind_copter = ind_copter
-
         self.serv_sock = None
-        self.server_message = []
 
+        # список полученных сообщений. Выполненное сообщение удаляется
+        self.server_message = []
+        self.uart_message = []
+
+        # Текущие состояние: Wait, Flight, Arm, Search
+        self.condition = "Wait"
+
+        # массив хранения текущих координат коптера
+        self.coordinates = [0, 0, 0]
+        # координаты дома (берутся при взлете)
+        self.home = [0,0,0]
+
+        try:
+            # Параметры для юарта
+            self.uart = serial.Serial(port_uart, boud_uart, timeout=timeout_uart)
+            self.uart.flush()  # очистка юарта
+        except:
+            print("Не удалось подключиться к ЮАРТУ")
+
+
+        # Параметры для поиска aruco
+        self.DICTIONARY = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
+        self.PARAMETERS = cv2.aruco.DetectorParameters_create()
+
+
+    # основная функция
     def run_server(self):
         self.serv_sock = self.__create_serv_sock()
-        stream_for_messages = threading.Thread(target=self.accepting_messages, args=())  # запуск потока обработки сообщений
+
+        # Принимаем сообщения от сервера в отдельном потоке
+        stream_for_messages = threading.Thread(target=self.accepting_messages, args=())
         stream_for_messages.start()
 
-        stream_for_messages_handler = threading.Thread(target=self.message_handler, args=())  # запуск потока обработки сообщений
+        # Принимаем сообщения от юарта в отдельном потоке
+        stream_for_messages_handler = threading.Thread(target=self.message_handler, args=())
         stream_for_messages_handler.start()
 
+        t_start = time.time()
         while True:
-            self.send_message(self.create_message_CC(X=10.30, Y=20.00, Z=1.22))
-            time.sleep(1)
+            # принять сообщение из юарта
+            self.accepting_messages_uart()
+
+            # проверяем состояние коптера
+            if self.condition == "Wait":
+                print(self.condition)
+                pass
+            elif self.condition == "Arm":
+                pass
+            elif self.condition == "Flight":
+                print(self.condition)
+                pass
+            elif self.condition == "Search":
+                print(self.condition)
+                pass
+
 
     # Создать соккет и соединились с сервером
     def __create_serv_sock(self):
-        serv_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, proto=0)
-        serv_sock.connect((self.id_server, self.port_server))
-        print("Успешное соединение")
-        return serv_sock
+        try:
+            serv_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, proto=0)
+            serv_sock.connect((self.id_server, self.port_server))
+            print("Успешное соединение")
+            return serv_sock
+        except:
+            print("Не удалось соедениться с сервером")
 
     # В отдельном потоке принимаем сообщения
     def accepting_messages(self):
         while True:
             data = self.serv_sock.recv(1024).decode("utf8")  # считываем полученное сообщение и декодируем
-            self.server_message.append(data)  # сохраняем полученное сообщение
+            self.server_message.append(data)  # сохраняем полученное сообщение в список
 
-    #########################################
-    # Блок отправления и создания сообщений #
-    #########################################
-    def send_message(self, message):
+    # Принять сообщение из арта
+    # !!! переделать данную функцию под упакованные сообщения !!! #
+    def accepting_messages_uart(self):
+        if self.uart.in_waiting > 0:
+            data = self.uart.readline()
+            self.uart_message.append(data)
+            #print(data.decode("utf-8").rstrip())
+
+    ###################################################
+    # Блок отправления,создания и обработки сообщений #
+    ###################################################
+    # отправить сообщение на сервер
+    def send_message_server(self, message):
         self.serv_sock.sendall(message)
 
-    def create_message_H(self):
-        return "HC".encode("utf8")
-
+    # координаты коптера
     def create_message_CC(self, X, Y, Z):
-        message = str(self.ind_copter) + "CC" "X" + str(X) + "Y" + str(Y) + "Z" + str(Z)
-        return message.encode("utf8")
+        return struct.pack(">2sfff1c", b'CC', X, Y, Z, b"\n")
 
-    # разбираем пришедшее сообщение
-    def message_parser(self, message):
-        type_message = message[0:2]
-        message = message[2:len(message)]
-        return type_message, message
+    # New Coordinates
+    def create_message_NC_UART(self, X, Y, Z):
+        return struct.pack(">2sfff1c", b'NC', X, Y, Z, b"\n")
+
+
+
+    # Первые два байта сообщения всегда будут буквенными и содержать смысл последующей команды.
+    # Например NC - новые координаты
+    def message_parser2(self, message):
+        type_message = message[0:2].decode("utf-8")
+        return type_message
+
+    # отправить сообщение по юарту
+    def send_message_uart(self, message):
+        self.uart.write(message)
+        pass
 
     ###################################
     # Блок анализа принятых сообщений #
     ###################################
     def message_handler(self):
         while True:
-            # Если есть принятое сообщение
+            # ---------------------------------------
+            # Если есть принятое сообщение от сервера
+            # ---------------------------------------
             if len(self.server_message) > 0:
 
-                # считываем сообщение и удаляем его
+                # считываем сообщение, удаляем его и определяем его тип
                 message = self.server_message.pop(0)
-                type_message, message = self.message_parser(message)
+                type_message = self.message_parser2(message)
 
-                # Если пришли координаты
-                if type_message == 'NC':
-                    ind_X = message.find("X")
-                    ind_Y = message.find("Y")
-                    ind_Z = message.find("Z")
-                    x = "{:.2f}".format(float(message[(ind_X + 1):(ind_Y)]))
-                    y = "{:.2f}".format(float(message[(ind_Y + 1):(ind_Z)]))
-                    z = "{:.2f}".format(float(message[(ind_Z + 1):]))
-                    print("X:", x, "Y:", y, "Z:", z)
+                # команда ARM
+                if type_message == 'CA':
+                    """выполнить предстартовую подготовку"""
+                    self.condition = "ARM"
 
+                elif type_message == "CL":
+                    """выполнить посадку"""
+                    self.condition = "LAND"
 
-class Uart:
-    def __init__(self, port='/dev/serial0', boud=9600, timeout=1):
-        self.uart = serial.Serial(port, boud, timeout=timeout)
-        self.uart.flush()  # очистка юарта
+                elif type_message == "MR":
+                    """выполнить посадку"""
+                    self.condition = "MR"
+                    self.condition = "MR"
 
-    # Принять сообщение
-    def accept_message(self):
-        if self.uart.in_waiting > 0:
-            line = self.uart.readline()
-            print(line.decode("utf-8").rstrip())
-            return line.decode("utf-8").rstrip()
+                # Если пришли новые координаты для коптера
+                elif type_message == 'NC':
+                    __, __, X, Y, Z, __ = struct.unpack(">2cfff1c", message)
+                    # отправляем по юарту координаты и меняем состояние коптера
+                    self.condition = "Flight"
+                    self.send_message_uart(message=self.create_message_CC(X, Y, Z))
 
-    def send_message(self, message):
-        self.uart.write(message)
+            # -------------------------------------
+            # Если есть принятое сообщение из юарта
+            # -------------------------------------
+            if len(self.uart_message) > 0:
+                # считываем сообщение и удаляем его
+                message = self.uart_message.pop(0)
+                type_message = self.message_parser2(message)
+
+                # Если сообщение с координатами, то определяем их и отправляем на сервер
+                if type_message == "CC":
+                    __, __, X, Y, Z, __ = struct.unpack(">2cfff1c", message)
+
+                    # Генерируем сообщение
+                    self.send_message_server(message=self.create_message_CC(X, Y, Z))
+
+    ###################################
+    ###### Алгоритмы управления #######
+    ###################################
+    # полет по области с поиском маркеров
+    def search_markers_in_area(self, x1, y1, x2, y2, z):
+        """Генерация траектории для полета внутри прямоугольника и поиска маркера"""
         pass
 
-    # распарсить сообщение
-    def message_parse(self, message):
-        ind_X = message.find("X")
-        ind_Y = message.find("Y")
-        ind_Z = message.find("Z")
 
-        x = "{:.2f}".format(float(message[(ind_X + 1):(ind_Y)]))
-        y = "{:.2f}".format(float(message[(ind_Y + 1):(ind_Z)]))
-        z = "{:.2f}".format(float(message[(ind_Z + 1):]))
-        print(x, y, z)
-        return x, y, z
+    # полет в точку и поиск в ней маркеров
+    def search_markers_in_point(self, x, y, z):
+        """Генерация траектории для полета в точку и поиска маркера"""
+        pass
+
+    # Поиск маркера на кадре
+    def find_markers(self, frame):
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        corners, ids, rejectedImgPoints = cv2.aruco.detectMarkers(gray_frame, self.DICTIONARY,
+                                                                  parameters=self.PARAMETERS)
+        if ids is None:
+            return None
+        return ids
+
+
 
 
 if __name__ == '__main__':
-    client = Client(id="127.0.0.1", port=8000, ind_copter=1)
+    client = Client(id="127.0.0.1", port=8000, ind_copter=1, port_uart="COM1")
     client.run_server()
     pass
