@@ -19,6 +19,7 @@ local uart = Uart.new(uartNum, baudRate, parity, stopBits) --  создание 
 local IS_FLIGHT = false
 local POINT_DECELERATION = false
 
+
 local function changeColor(red, green, blue)
    for i=0, ledNumber - 1, 1 do
        leds:set(i, red, green, blue)
@@ -63,6 +64,6 @@ function callback(event)
 end
 
 changeColor(0, 0, 0)
-local time_photo = 0.2
-timer_uart = Timer.new(time_photo, function() getData() end)
-timer_uart:start()
+local time_timer = 0.2
+timer = Timer.new(time_timer, function() getData() end)
+timer:start()
