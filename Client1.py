@@ -64,6 +64,7 @@ class Client():
                 print(self.condition)
                 pass
             elif self.condition == "Arm":
+                print(self.condition)
                 pass
             elif self.condition == "Flight":
                 print(self.condition)
@@ -90,7 +91,6 @@ class Client():
             self.server_message.append(data)  # сохраняем полученное сообщение в список
 
     # Принять сообщение из арта
-    # !!! переделать данную функцию под упакованные сообщения !!! #
     def accepting_messages_uart(self):
         if self.uart.in_waiting > 0:
             data = self.uart.readline()
@@ -104,14 +104,27 @@ class Client():
     def send_message_server(self, message):
         self.serv_sock.sendall(message)
 
-    # координаты коптера
+    # координаты коптера для отправки на сервер
     def create_message_CC(self, X, Y, Z):
         return struct.pack(">2sfff1c", b'CC', X, Y, Z, b"\n")
 
+
+    # Сообщения для отправки на коптер по UART
     # New Coordinates
     def create_message_NC_UART(self, X, Y, Z):
         return struct.pack(">2sfff1c", b'NC', X, Y, Z, b"\n")
 
+    # Set Leds
+    def create_message_SL_UART(self, R, G, B):
+        return struct.pack(">2sfff1c", b'SL', R, G, B, b"\n")
+
+    # Copter ARM
+    def create_message_CA_UART(self):
+        return struct.pack(">2sfff1c", b'CA', 0, 0, 0, b"\n")
+
+    # Copter DISARM
+    def create_message_CD_UART(self):
+        return struct.pack(">2sfff1c", b'CD', 0, 0, 0, b"\n")
 
 
     # Первые два байта сообщения всегда будут буквенными и содержать смысл последующей команды.
@@ -149,8 +162,7 @@ class Client():
                     self.condition = "LAND"
 
                 elif type_message == "MR":
-                    """выполнить посадку"""
-                    self.condition = "MR"
+                    """выполнить сброс груза"""
                     self.condition = "MR"
 
                 # Если пришли новые координаты для коптера
@@ -158,7 +170,19 @@ class Client():
                     __, __, X, Y, Z, __ = struct.unpack(">2cfff1c", message)
                     # отправляем по юарту координаты и меняем состояние коптера
                     self.condition = "Flight"
-                    self.send_message_uart(message=self.create_message_CC(X, Y, Z))
+                    self.send_message_uart(message=self.create_message_NC_UART(X, Y, Z))
+
+                elif type_message == 'SL':
+                    __, __, R, G, B, __ = struct.unpack(">2cfff1c", message)
+                    # отправляем по юарту координаты и меняем состояние коптера
+                    self.condition = "Flight"
+                    self.send_message_uart(message=self.create_message_SL_UART(R, G, B))
+
+
+                elif type_message == 'SA':
+                    __, __, X1, Y1, X2, Y2, __ = struct.unpack(">2sffff1c", message)
+                    self.condition = "Search"
+                    pass
 
             # -------------------------------------
             # Если есть принятое сообщение из юарта
