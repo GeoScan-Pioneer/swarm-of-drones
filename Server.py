@@ -39,40 +39,32 @@ class Server():
         self.port_server = port
 
         self.serv_sock = None
-        self.clients_sock = []
-
+        self.clients = [] # список клиентов
         self.cid = 0
+
+
+        # список сообщений от клиентов и самих клиентов
         self.clients_message = []
 
         self.card = card
 
-    # Запустить сервер
-    def run_server(self):
-        self.serv_sock = self.__create_serv_sock()  # создание сервера
+    def run_server_UDP(self):
+        self.serv_sock = self.__create_serv_sock_UDP()  # создание сервера
         t1 = threading.Thread(target=self.message_handler, args=())  # запуск потока обработки сообщений
         t1.start()
 
-        #t2 = threading.Thread(target=self.handler_card, args=())  # запуск потока обработки сообщений
+        #t2 = threading.Thread(target=self.test_message, args=())  # запуск потока обработки сообщений
         #t2.start()
 
         while True:
-            client_sock, client_addr = self.serv_sock.accept()  # если есть подключение
-            self.clients_sock.append(client_sock)  # сохраняем в список подключенных устройств
+            data, client_addr = self.serv_sock.recvfrom(1024)
+            self.clients_message.append(data)
+            self.clients_message.append(client_addr)
 
-            self.card.copter.append(1)
-            self.card.coord.append((0,0))
 
-            print("Клиент", client_addr, "подключился")
-            t = threading.Thread(target=self.accept_message_client,
-                                 args=(client_sock, self.cid))  # запускаем поток его обработки
-            t.start()
-            self.cid += 1
-
-    # Создать соккет
-    def __create_serv_sock(self):
-        serv_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, proto=0)
+    def __create_serv_sock_UDP(self):
+        serv_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         serv_sock.bind((self.id_server, self.port_server))
-        serv_sock.listen()
         return serv_sock
 
     # отлдельный поток для приема сообщений от нового клиента
@@ -89,8 +81,8 @@ class Server():
     # Блок отправления и создания сообщений #
     #########################################
     # отправить сообщение
-    def send_message(self, cid, message):
-        self.clients_sock[cid].sendall(message)
+    def send_message(self, client, message):
+        self.serv_sock.sendto(message, client)
 
     # Magnet Reset
     def create_message_MR(self):
@@ -138,12 +130,19 @@ class Server():
             # ---------------------------------------
             if len(self.clients_message) > 0:
 
-                # считываем сообщение, удаляем его и определяем его тип
+                # считываем сообщение и клиента, удаляем его и определяем его тип
                 message = self.clients_message.pop(0)
+                client = self.clients_message.pop(0)
+
                 type_message = self.message_parser2(message)
 
+
+                # если пришло стартовое то запоминаем клиента
+                if type_message == "SC":
+                    self.clients.append(client)
+
                 # Если пришли координаты
-                if type_message == "CC":
+                elif type_message == "CC":
                     __, __, X, Y, Z, __ = struct.unpack(">2cfff1c", message)
                     print(X, Y, Z)
 
@@ -152,17 +151,23 @@ class Server():
     #########################
 
     def test_message(self):
-        self.send_message(cid=0, message=self.create_message_CA())
-        time.sleep(2)
+        while True:
+            if len(self.clients) > 0:
+                self.send_message(client=self.clients[0], message=self.create_message_CA())
+                time.sleep(2)
 
-        self.send_message(cid=0, message=self.create_message_CL())
-        time.sleep(2)
+                self.send_message(client=self.clients[0], message=self.create_message_CL())
+                time.sleep(2)
 
-        self.send_message(cid=0, message=self.create_message_NC(10.30, 49.33, 1.00))
-        time.sleep(2)
+                self.send_message(client=self.clients[0], message=self.create_message_NC(10.30, 49.33, 1.00))
+                time.sleep(2)
 
-        self.send_message(cid=0, message= self.create_message_NC(10.30, 49.33, 1.00))
-        time.sleep(2)
+                self.send_message(client=self.clients[0], message=self.create_message_SL(0.30, 0.33, 1.00))
+
+
+
+
+
 
 
 
@@ -171,4 +176,4 @@ class Server():
 if __name__ == '__main__':
     card = Card()
     server = Server(id="127.0.0.1", port=8000, card=card)
-    server.run_server()
+    server.run_server_UDP()

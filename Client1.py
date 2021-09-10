@@ -42,53 +42,50 @@ class Client():
         self.PARAMETERS = cv2.aruco.DetectorParameters_create()
 
 
-    # основная функция
-    def run_server(self):
-        self.serv_sock = self.__create_serv_sock()
+    def run_server_UDP(self):
+        self.serv_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, proto=0)
 
         # Принимаем сообщения от сервера в отдельном потоке
         stream_for_messages = threading.Thread(target=self.accepting_messages, args=())
         stream_for_messages.start()
 
-        # Принимаем сообщения от юарта в отдельном потоке
+        # Обрабатываем сообщения в отдельном потоке
         stream_for_messages_handler = threading.Thread(target=self.message_handler, args=())
         stream_for_messages_handler.start()
 
-        t_start = time.time()
         while True:
             # принять сообщение из юарта
             self.accepting_messages_uart()
 
             # проверяем состояние коптера
             if self.condition == "Wait":
-                print(self.condition)
+                #print(self.condition)
                 pass
             elif self.condition == "Arm":
-                print(self.condition)
+                #print(self.condition)
                 pass
             elif self.condition == "Flight":
-                print(self.condition)
+                #print(self.condition)
                 pass
             elif self.condition == "Search":
-                print(self.condition)
+                #print(self.condition)
                 pass
+        pass
 
 
-    # Создать соккет и соединились с сервером
-    def __create_serv_sock(self):
-        try:
-            serv_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, proto=0)
-            serv_sock.connect((self.id_server, self.port_server))
-            print("Успешное соединение")
-            return serv_sock
-        except:
-            print("Не удалось соедениться с сервером")
 
     # В отдельном потоке принимаем сообщения
     def accepting_messages(self):
+        # Отправка стартового сообщения
+        self.serv_sock.sendto(self.create_message_SC(), (self.id_server, self.port_server))
         while True:
-            data = self.serv_sock.recv(1024).decode("utf8")  # считываем полученное сообщение и декодируем
-            self.server_message.append(data)  # сохраняем полученное сообщение в список
+            try:
+                # считываем полученное сообщение
+                data, __ = self.serv_sock.recvfrom(1024)
+                self.server_message.append(data)  # сохраняем полученное сообщение в список
+            except:
+                print("Ошибка приема сообщений от сервера")
+
 
     # Принять сообщение из арта
     def accepting_messages_uart(self):
@@ -102,8 +99,11 @@ class Client():
     ###################################################
     # отправить сообщение на сервер
     def send_message_server(self, message):
-        self.serv_sock.sendall(message)
+        self.serv_sock.sendto(message, (self.id_server, self.port_server))
 
+    # Start Communication
+    def create_message_SC(self):
+        return struct.pack(">2s1c", b'SC', b"\n")
     # координаты коптера для отправки на сервер
     def create_message_CC(self, X, Y, Z):
         return struct.pack(">2sfff1c", b'CC', X, Y, Z, b"\n")
@@ -151,30 +151,34 @@ class Client():
                 # считываем сообщение, удаляем его и определяем его тип
                 message = self.server_message.pop(0)
                 type_message = self.message_parser2(message)
-
                 # команда ARM
                 if type_message == 'CA':
                     """выполнить предстартовую подготовку"""
+                    print("Получено сообщение CA")
                     self.condition = "ARM"
 
                 elif type_message == "CL":
                     """выполнить посадку"""
+                    print("Получено сообщение CL")
                     self.condition = "LAND"
 
                 elif type_message == "MR":
                     """выполнить сброс груза"""
+                    print("Получено сообщение MR")
                     self.condition = "MR"
 
                 # Если пришли новые координаты для коптера
                 elif type_message == 'NC':
                     __, __, X, Y, Z, __ = struct.unpack(">2cfff1c", message)
                     # отправляем по юарту координаты и меняем состояние коптера
+                    print("Получено сообщение NC")
                     self.condition = "Flight"
                     self.send_message_uart(message=self.create_message_NC_UART(X, Y, Z))
 
                 elif type_message == 'SL':
                     __, __, R, G, B, __ = struct.unpack(">2cfff1c", message)
                     # отправляем по юарту координаты и меняем состояние коптера
+                    print("Получено сообщение SL")
                     self.condition = "Flight"
                     self.send_message_uart(message=self.create_message_SL_UART(R, G, B))
 
@@ -194,6 +198,7 @@ class Client():
 
                 # Если сообщение с координатами, то определяем их и отправляем на сервер
                 if type_message == "CC":
+                    print(1)
                     __, __, X, Y, Z, __ = struct.unpack(">2cfff1c", message)
 
                     # Генерируем сообщение
@@ -227,5 +232,5 @@ class Client():
 
 if __name__ == '__main__':
     client = Client(id="127.0.0.1", port=8000, ind_copter=1, port_uart="COM1")
-    client.run_server()
+    client.run_server_UDP()
     pass
