@@ -32,6 +32,13 @@ class Card():
                     break
 
 
+class Copter():
+    def __init__(self, num_copter):
+        self.num_copter = num_copter
+        self.coordinates_copter = [None, None, None]
+        self.addr = [None, None]
+        self.condition = None
+
 
 class Server():
     def __init__(self, id, port, card):
@@ -53,8 +60,8 @@ class Server():
         t1 = threading.Thread(target=self.message_handler, args=())  # запуск потока обработки сообщений
         t1.start()
 
-        #t2 = threading.Thread(target=self.test_message, args=())  # запуск потока обработки сообщений
-        #t2.start()
+        t2 = threading.Thread(target=self.test_message, args=())  # запуск потока обработки сообщений
+        t2.start()
 
         while True:
             data, client_addr = self.serv_sock.recvfrom(1024)
@@ -96,6 +103,10 @@ class Server():
     def create_message_CA(self):
         return struct.pack(">2s1c", b'CA', b"\n")
 
+    # COPTER_DISARM
+    def create_message_CD(self):
+        return struct.pack(">2s1c", b'CD', b"\n")
+
     # New Coordinates + X + Y + Z
     def create_message_NC(self, X, Y, Z):
         return struct.pack(">2sfff1c", b'NC', X, Y, Z, b"\n")
@@ -126,7 +137,7 @@ class Server():
 
         while True:
             # ---------------------------------------
-            # Если есть принятое сообщение от сервера
+            # Если есть принятое сообщение от клиента
             # ---------------------------------------
             if len(self.clients_message) > 0:
 
@@ -136,15 +147,17 @@ class Server():
 
                 type_message = self.message_parser2(message)
 
-
                 # если пришло стартовое то запоминаем клиента
                 if type_message == "SC":
                     self.clients.append(client)
+
+
 
                 # Если пришли координаты
                 elif type_message == "CC":
                     __, __, X, Y, Z, __ = struct.unpack(">2cfff1c", message)
                     print(X, Y, Z)
+
 
     #########################
     # Блок тестовых функций #
@@ -157,6 +170,9 @@ class Server():
                 time.sleep(2)
 
                 self.send_message(client=self.clients[0], message=self.create_message_CL())
+                time.sleep(2)
+
+                self.send_message(client=self.clients[0], message=self.create_message_CD())
                 time.sleep(2)
 
                 self.send_message(client=self.clients[0], message=self.create_message_NC(10.30, 49.33, 1.00))
