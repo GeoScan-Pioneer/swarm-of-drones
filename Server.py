@@ -29,6 +29,9 @@ class Server():
         # список сообщений от клиентов
         self.clients_message = []
 
+        # Минимальная дистанция приближения коптеров. Указывается в метрах
+        self.min_distance = 0.5
+
     def run_server_UDP(self):
         self.serv_sock = self.__create_serv_sock_UDP()  # создание сервера
 
@@ -36,19 +39,21 @@ class Server():
         t2.start()
 
         while True:
-            # принимаем все сообщения. После приема сообщение и клиент записываются в список
-            data, client_addr = self.serv_sock.recvfrom(100)
-
-            self.message_handler2(data, client_addr)
+            try:
+                # принимаем все сообщения
+                data, client_addr = self.serv_sock.recvfrom(100)
+                self.message_handler2(data, client_addr)
+            except:
+                pass
 
 
 
 
     def __create_serv_sock_UDP(self):
         serv_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        serv_sock.setblocking(0)  # отключение блокировки при приеме сообщений
         serv_sock.bind((self.id_server, self.port_server))
         return serv_sock
-
 
     #########################################
     # Блок отправления и создания сообщений #
@@ -119,6 +124,17 @@ class Server():
 
             print(X, Y, Z)
 
+    ###################################
+    ###### Алгоритмы управления #######
+    ###################################
+    # проверка пересечения допустимого расстояния
+    def distance_check(self):
+
+        pass
+
+    # вычисление дистанции между двумя точками
+    def dist(self, p1, p2):
+        return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5
 
 
     #########################

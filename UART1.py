@@ -54,6 +54,8 @@ b = 0
 g = 0
 n = 1
 h = 0
+
+temp = 0
 while True:
     uart.send_message(uart.create_message_CC(r, g, b))
     r += 0.1*n
@@ -64,4 +66,6 @@ while True:
     if(h >= 9):
         n = n * -1
         h = 0
-    time.sleep(1)
+    temp = temp + 1
+    print(temp)
+    time.sleep(0.1)

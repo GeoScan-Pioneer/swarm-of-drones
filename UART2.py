@@ -13,8 +13,34 @@ class Uart:
     def accept_message(self):
         if self.uart.in_waiting > 0:
             line = self.uart.readline()
-            m1, m2, m3, m4, m5, m6 = struct.unpack(">2cfff1c", line)
-            print(m1, m2, m3, m4, m5, m6)
+
+            type_message = self.message_parser2(line)
+            # команда ARM
+            if type_message == 'CA':
+                """выполнить предстартовую подготовку"""
+                print("Получено сообщение CA")
+
+            elif type_message == 'CD':
+                """выполнить предстартовую подготовку"""
+                print("Получено сообщение CD")
+
+            elif type_message == "CL":
+                """выполнить посадку"""
+                print("Получено сообщение CL")
+
+            elif type_message == "MR":
+                """выполнить сброс груза"""
+                print("Получено сообщение MR")
+
+            # Если пришли новые координаты для коптера
+            elif type_message == 'NC':
+                __, __, X, Y, Z, __ = struct.unpack(">2cfff1c", line)
+                print("Получено сообщение NC", X, Y, Z)
+
+            elif type_message == 'SL':
+                __, __, R, G, B, __ = struct.unpack(">2cfff1c", line)
+                print("Получено сообщение SL", R, G, B)
+
 
     def send_message(self, message):
         self.uart.write(message)
@@ -25,16 +51,9 @@ class Uart:
         return message.encode("utf8")
 
     # распарсить сообщение
-    def message_parse(self, message):
-        ind_X = message.find("X")
-        ind_Y = message.find("Y")
-        ind_Z = message.find("Z")
-
-        x = "{:.2f}".format(float(message[(ind_X + 1):(ind_Y)]))
-        y = "{:.2f}".format(float(message[(ind_Y + 1):(ind_Z)]))
-        z = "{:.2f}".format(float(message[(ind_Z + 1):]))
-        print(x, y, z)
-        return x, y, z
+    def message_parser2(self, message):
+        type_message = message[0:2].decode("utf-8")
+        return type_message
 
 uart = Uart(port="COM2")
 while True:

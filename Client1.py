@@ -45,7 +45,7 @@ class Client():
     def run_server_UDP(self):
         self.serv_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, proto=0)
         self.serv_sock.bind(("localhost", 8001))
-        self.serv_sock.setblocking(0) # отключение блокировки сервера при приеме сообщений
+        self.serv_sock.setblocking(0) # отключение блокировки при приеме сообщений
 
         # Отправка стартового сообщения
         self.send_message_server(message=self.create_message_SC())
@@ -56,11 +56,12 @@ class Client():
         stream_for_messages_handler.start()
 
         while True:
-            # принять сообщение из юарта
+            # принять сообщение из юарта, если пришло
             self.accepting_messages_uart()
 
-            # принять сообщение от сервера
+            # принять сообщение от сервера, если пришло
             self.accepting_messages()
+
 
         pass
 
