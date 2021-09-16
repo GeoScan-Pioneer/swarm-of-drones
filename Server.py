@@ -5,10 +5,26 @@ import cv2
 import numpy as np
 import struct
 
+import tkinter as tk
+
 from typing import List
 
 
-class Copter():
+class Card:
+    window = tk.Tk()
+    window.title("Live map")
+    window['bg'] = 'white'
+    window.resizable(width=False, height=False)
+    window.config(padx=10, pady=10)
+    window.geometry('600x600')
+
+    canvas = tk.Canvas(window)
+    canvas.pack(fill=tk.BOTH, expand=True)
+
+    window.mainloop()
+
+
+class Copter:
     def __init__(self, num_copter, addr):
         self.num_copter = num_copter
         self.coordinates_copter = [None, None, None]
@@ -16,7 +32,7 @@ class Copter():
         self.condition = None
 
 
-class Server():
+class Server:
     """ Сервер """
     def __init__(self, id, port, number=4):
         self.id_server = id
@@ -143,6 +159,7 @@ class Server():
 
 
 if __name__ == '__main__':
+    card = Card()
     server = Server(id="127.0.0.1", port=8000)
     server.run_server_UDP()
     print(1)
