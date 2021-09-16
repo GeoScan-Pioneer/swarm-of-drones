@@ -5,31 +5,19 @@ import cv2
 import numpy as np
 import struct
 
+import tkinter as tk
 
 # Ужасная карта ради карты.
 # !!! сделать менее прожерливую карту !!! #
 class Card():
-    def __init__(self):
-        self.card = np.zeros((512,512,3), np.uint8)
-        # Draw a diagonal blue line with thickness of 5 px
-        #cv2.line(self.card, (0, 0), (511, 511), (255, 255, 255), 5)
+    window = tk.Tk()
+    window.title("Live map")
+    window['bg'] = 'white'
+    window.resizable(width=False, height=False)
+    window.config(padx=10, pady=10)
+    window.geometry('600x600')
 
-        self.copter = []
-        self.coord = []
-
-    def image_point(self):
-        while True:
-            if len(self.copter) > 0:
-                self.card = np.zeros((512, 512, 3), np.uint8)
-                for i in range (len(self.copter)):
-                    x = (512 / 10) * float(self.coord[i][0])
-                    y = (512 / 10) * float(self.coord[i][1])
-                    cv2.circle(self.card, (int(x), int(y)), 2, (255, 255, 255), -1)
-                #print(1)
-                cv2.imshow("Card", self.card)
-                key = cv2.waitKey(10)
-                if key == 27:
-                    break
+    window.mainloop()
 
 
 
