@@ -11,17 +11,22 @@ from typing import List
 
 
 class Card:
-    window = tk.Tk()
-    window.title("Live map")
-    window['bg'] = 'white'
-    window.resizable(width=False, height=False)
-    window.config(padx=10, pady=10)
-    window.geometry('600x600')
+    def __init__(self):
+        self.window = tk.Tk()
+        self.window.title("Live map")
+        self.window['bg'] = 'white'
+        self.window.resizable(width=False, height=False)
+        self.window.config(padx=10, pady=10)
+        self.window.geometry('600x600')
 
-    canvas = tk.Canvas(window)
-    canvas.pack(fill=tk.BOTH, expand=True)
+        self.canvas = tk.Canvas(self.window)
+        self.canvas.pack(fill=tk.BOTH, expand=True)
 
-    window.mainloop()
+        self.window.mainloop()
+
+    def add_copter(self, copter):
+        oval = self.canvas.create_oval(20, 20, 40, 40, outline="#FF0000", fill="#FF0000")
+
 
 
 class Copter:
@@ -30,6 +35,7 @@ class Copter:
         self.coordinates_copter = [None, None, None]
         self.addr = addr
         self.condition = None
+
 
 
 class Server:
