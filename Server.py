@@ -11,7 +11,7 @@ from typing import List
 class Copter():
     def __init__(self, num_copter, addr):
         self.num_copter = num_copter
-        self.coordinates_copter = [None, None, None]
+        self.coordinates_copter = [(0, 0), 0]
         self.addr = addr
         self.condition = None
 
@@ -26,20 +26,22 @@ class Server():
         self.clients: List[Copter] = [] # список клиентов
         self.cid = 0
 
-
-        # список сообщений от клиентов и самих клиентов
+        # список сообщений от клиентов
         self.clients_message = []
 
     def run_server_UDP(self):
         self.serv_sock = self.__create_serv_sock_UDP()  # создание сервера
 
-        #t2 = threading.Thread(target=self.test_message, args=())  # запуск тестовой функции
-        #t2.start()
+        t2 = threading.Thread(target=self.test_message, args=())  # запуск тестовой функции
+        t2.start()
 
         while True:
             # принимаем все сообщения. После приема сообщение и клиент записываются в список
             data, client_addr = self.serv_sock.recvfrom(100)
+
             self.message_handler2(data, client_addr)
+
+
 
 
     def __create_serv_sock_UDP(self):
@@ -106,9 +108,10 @@ class Server():
             __, ind_copter, __ = struct.unpack(">2sh1c", message)
 
             # Создаем экземпляр класса Copter
-            client = Copter(num_copter=ind_copter, addr=client_addr)
+            client = Copter(num_copter=self.cid, addr=client_addr)
             self.clients.append(client)
-            print(self.clients[ind_copter].addr)
+            print(self.clients[self.cid].addr)
+            self.cid = self.cid + 1
 
         # Если пришли координаты
         elif type_message == "CC":
@@ -139,7 +142,7 @@ class Server():
 
                 self.send_message(client=self.clients[0].addr, message=self.create_message_SL(0.30, 0.33, 1.00))
 
-
+                time.sleep(2)
 
 
 if __name__ == '__main__':
