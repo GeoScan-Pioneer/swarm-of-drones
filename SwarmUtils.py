@@ -122,7 +122,8 @@ class Server(NetUtils):
     def message_handler(self, message, client_addr):
         type_message = self.message_parser(message)
         # если пришло стартовое то запоминаем клиента
-        if type_message.find("SC") > -1:
+        #if type_message.find("SC") > -1:
+        if type_message == "SC":
             # Создаем экземпляр класса Copter
             client = Copter(num_copter=self.cid, addr=client_addr, visual=self.card.add_copter())
             self.clients.append(client)
