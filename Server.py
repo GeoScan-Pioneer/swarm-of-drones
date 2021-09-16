@@ -5,80 +5,55 @@ import cv2
 import numpy as np
 import struct
 
-import tkinter as tk
+from typing import List
 
-# Ужасная карта ради карты.
-# !!! сделать менее прожерливую карту !!! #
-class Card():
-    window = tk.Tk()
-    window.title("Live map")
-    window['bg'] = 'white'
-    window.resizable(width=False, height=False)
-    window.config(padx=10, pady=10)
-    window.geometry('600x600')
 
-    window.mainloop()
-
+class Copter():
+    def __init__(self, num_copter, addr):
+        self.num_copter = num_copter
+        self.coordinates_copter = [None, None, None]
+        self.addr = addr
+        self.condition = None
 
 
 class Server():
-    def __init__(self, id, port, card):
+    """ Сервер """
+    def __init__(self, id, port, number=4):
         self.id_server = id
         self.port_server = port
 
         self.serv_sock = None
-        self.clients_sock = []
-
+        self.clients: List[Copter] = [] # список клиентов
         self.cid = 0
+
+
+        # список сообщений от клиентов и самих клиентов
         self.clients_message = []
 
-        self.card = card
+    def run_server_UDP(self):
+        self.serv_sock = self.__create_serv_sock_UDP()  # создание сервера
 
-    # Запустить сервер
-    def run_server(self):
-        self.serv_sock = self.__create_serv_sock()  # создание сервера
-        t1 = threading.Thread(target=self.message_handler, args=())  # запуск потока обработки сообщений
-        t1.start()
-
-        #t2 = threading.Thread(target=self.handler_card, args=())  # запуск потока обработки сообщений
+        #t2 = threading.Thread(target=self.test_message, args=())  # запуск тестовой функции
         #t2.start()
 
         while True:
-            client_sock, client_addr = self.serv_sock.accept()  # если есть подключение
-            self.clients_sock.append(client_sock)  # сохраняем в список подключенных устройств
+            # принимаем все сообщения. После приема сообщение и клиент записываются в список
+            data, client_addr = self.serv_sock.recvfrom(100)
+            self.message_handler2(data, client_addr)
 
-            self.card.copter.append(1)
-            self.card.coord.append((0,0))
 
-            print("Клиент", client_addr, "подключился")
-            t = threading.Thread(target=self.accept_message_client,
-                                 args=(client_sock, self.cid))  # запускаем поток его обработки
-            t.start()
-            self.cid += 1
-
-    # Создать соккет
-    def __create_serv_sock(self):
-        serv_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, proto=0)
+    def __create_serv_sock_UDP(self):
+        serv_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         serv_sock.bind((self.id_server, self.port_server))
-        serv_sock.listen()
         return serv_sock
 
-    # отлдельный поток для приема сообщений от нового клиента
-    def accept_message_client(self, client_sock, cid):
-        while True:
-            request = client_sock.recv(1024)
-            print(request)
-            self.clients_message.append(request)  # запись всех полученных сообщений в список
-
-    def handler_card(self):
-        self.card.image_point()
 
     #########################################
     # Блок отправления и создания сообщений #
     #########################################
     # отправить сообщение
-    def send_message(self, cid, message):
-        self.clients_sock[cid].sendall(message)
+    def send_message(self, client, message):
+        self.serv_sock.sendto(message, client)
 
     # Magnet Reset
     def create_message_MR(self):
@@ -91,6 +66,10 @@ class Server():
     # COPTER_ARM
     def create_message_CA(self):
         return struct.pack(">2s1c", b'CA', b"\n")
+
+    # COPTER_DISARM
+    def create_message_CD(self):
+        return struct.pack(">2s1c", b'CD', b"\n")
 
     # New Coordinates + X + Y + Z
     def create_message_NC(self, X, Y, Z):
@@ -118,45 +97,52 @@ class Server():
     ###################################
     # Блок анализа принятых сообщений #
     ###################################
-    def message_handler(self):
+    def message_handler2(self, message, client_addr):
 
-        while True:
-            # ---------------------------------------
-            # Если есть принятое сообщение от сервера
-            # ---------------------------------------
-            if len(self.clients_message) > 0:
+        type_message = self.message_parser2(message)
 
-                # считываем сообщение, удаляем его и определяем его тип
-                message = self.clients_message.pop(0)
-                type_message = self.message_parser2(message)
+        # если пришло стартовое то запоминаем клиента
+        if type_message == "SC":
+            __, ind_copter, __ = struct.unpack(">2sh1c", message)
 
-                # Если пришли координаты
-                if type_message == "CC":
-                    __, __, X, Y, Z, __ = struct.unpack(">2cfff1c", message)
-                    print(X, Y, Z)
+            # Создаем экземпляр класса Copter
+            client = Copter(num_copter=ind_copter, addr=client_addr)
+            self.clients.append(client)
+            print(self.clients[ind_copter].addr)
+
+        # Если пришли координаты
+        elif type_message == "CC":
+            __, ind_copter, X, Y, Z, __ = struct.unpack(">2shfff1c", message)
+
+            print(X, Y, Z)
+
+
 
     #########################
     # Блок тестовых функций #
     #########################
 
     def test_message(self):
-        self.send_message(cid=0, message=self.create_message_CA())
-        time.sleep(2)
+        while True:
+            if len(self.clients) > 0:
+                self.send_message(client=self.clients[0].addr, message=self.create_message_CA())
+                time.sleep(2)
 
-        self.send_message(cid=0, message=self.create_message_CL())
-        time.sleep(2)
+                self.send_message(client=self.clients[0].addr, message=self.create_message_CL())
+                time.sleep(2)
 
-        self.send_message(cid=0, message=self.create_message_NC(10.30, 49.33, 1.00))
-        time.sleep(2)
+                self.send_message(client=self.clients[0].addr, message=self.create_message_CD())
+                time.sleep(2)
 
-        self.send_message(cid=0, message= self.create_message_NC(10.30, 49.33, 1.00))
-        time.sleep(2)
+                self.send_message(client=self.clients[0].addr, message=self.create_message_NC(10.30, 49.33, 1.00))
+                time.sleep(2)
 
+                self.send_message(client=self.clients[0].addr, message=self.create_message_SL(0.30, 0.33, 1.00))
 
 
 
 
 if __name__ == '__main__':
-    card = Card()
-    server = Server(id="127.0.0.1", port=8000, card=card)
-    server.run_server()
+    server = Server(id="127.0.0.1", port=8000)
+    server.run_server_UDP()
+    print(1)
