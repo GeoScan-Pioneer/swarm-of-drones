@@ -45,11 +45,11 @@ class Client():
     def run_server_UDP(self):
         self.serv_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, proto=0)
         self.serv_sock.bind(("localhost", 8001))
+        self.serv_sock.setblocking(0) # отключение блокировки сервера при приеме сообщений
 
+        # Отправка стартового сообщения
+        self.send_message_server(message=self.create_message_SC())
 
-        # Принимаем сообщения от сервера в отдельном потоке
-        stream_for_messages = threading.Thread(target=self.accepting_messages, args=())
-        stream_for_messages.start()
 
         # Обрабатываем сообщения в отдельном потоке
         stream_for_messages_handler = threading.Thread(target=self.message_handler, args=())
@@ -58,21 +58,22 @@ class Client():
         while True:
             # принять сообщение из юарта
             self.accepting_messages_uart()
+
+            # принять сообщение от сервера
+            self.accepting_messages()
+
         pass
 
 
 
     # В отдельном потоке принимаем сообщения
     def accepting_messages(self):
-        # Отправка стартового сообщения
-        self.send_message_server(message=self.create_message_SC())
-        while True:
-            try:
-                # считываем полученное сообщение
-                data, __ = self.serv_sock.recvfrom(100)
-                self.server_message.append(data)  # сохраняем полученное сообщение в список
-            except:
-                print("Ошибка приема сообщений от сервера")
+        try:
+            # считываем полученное сообщение
+            data, __ = self.serv_sock.recvfrom(100)
+            self.server_message.append(data)  # сохраняем полученное сообщение в список
+        except:
+            pass
 
 
     # Принять сообщение из арта
@@ -80,7 +81,7 @@ class Client():
         if self.uart.in_waiting > 0:
             data = self.uart.readline()
             self.uart_message.append(data)
-            #print(data.decode("utf-8").rstrip())
+            print(1)
 
     ###################################################
     # Блок отправления,создания и обработки сообщений #
@@ -193,11 +194,10 @@ class Client():
 
                 # Если сообщение с координатами, то определяем их и отправляем на сервер
                 if type_message == "CC":
-                    print(1)
                     __, __, X, Y, Z, __ = struct.unpack(">2cfff1c", message)
 
                     # Генерируем сообщение
-                    # self.send_message_server(message=self.create_message_CC(X, Y, Z))
+                    self.send_message_server(message=self.create_message_CC(X, Y, Z))
 
     ###################################
     ###### Алгоритмы управления #######
