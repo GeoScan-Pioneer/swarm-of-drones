@@ -11,8 +11,15 @@ import tkinter as tk
 from typing import List
 
 
-class Card:
+class Card(threading.Thread):
     def __init__(self):
+        threading.Thread.__init__(self)
+        self.start()
+
+    def callback(self):
+        self.window.quit()
+
+    def run(self):
         self.window = tk.Tk()
         self.window.title("Live map")
         self.window['bg'] = 'white'
@@ -22,6 +29,8 @@ class Card:
 
         self.canvas = tk.Canvas(self.window)
         self.canvas.pack(fill=tk.BOTH, expand=True)
+
+        self.window.mainloop()
 
     def add_copter(self):
         oval = self.canvas.create_oval(20, 20, 40, 40, outline="#FF0000", fill="#FF0000")
