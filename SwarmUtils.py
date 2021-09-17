@@ -30,6 +30,9 @@ class Card(threading.Thread):
         self.canvas = tk.Canvas(self.window)
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
+        self.copter_radius = 10
+        self.copter_area_radius = 25
+
         self.window.mainloop()
 
     def add_copter(self):
@@ -141,9 +144,17 @@ class Server(NetUtils):
 
         # Если пришли координаты
         elif type_message == "CC":
-            __, ind_copter, X, Y, Z, __ = struct.unpack(">2shfff1c", message)
-
+            __, X, Y, Z, __ = struct.unpack(">2sfff1c", message)
+            client = self.get_client_by_address(client_addr)
+            self.card.canvas.moveto(client.visual, X, Y)
             print(X, Y, Z)
+
+    def get_client_by_address(self, addr):
+        for client in self.clients:
+            if client.addr == addr:
+                return client
+        else:
+            return None
 
 
     #########################
