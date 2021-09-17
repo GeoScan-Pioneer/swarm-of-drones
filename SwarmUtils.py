@@ -31,13 +31,22 @@ class Card(threading.Thread):
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
         self.copter_radius = 10
-        self.copter_area_radius = 25
+        self.copter_area_radius = 24
 
         self.window.mainloop()
 
     def add_copter(self):
-        oval = self.canvas.create_oval(20, 20, 40, 40, outline="#FF0000", fill="#FF0000")
-        return oval
+        oval1 = self.canvas.create_oval(300-self.copter_area_radius/2,
+                                        300-self.copter_area_radius/2,
+                                        300+self.copter_area_radius/2,
+                                        300+self.copter_area_radius/2,
+                                        outline="#FFAAAA", fill="#FFDDDD")
+        oval2 = self.canvas.create_oval(300-self.copter_radius/2,
+                                        300-self.copter_radius/2,
+                                        300+self.copter_radius/2,
+                                        300+self.copter_radius/2,
+                                        outline="#FF0000", fill="#FF0000")
+        return oval1, oval2
 
 
 class Copter:
@@ -146,7 +155,8 @@ class Server(NetUtils):
         elif type_message == "CC":
             __, X, Y, Z, __ = struct.unpack(">2sfff1c", message)
             client = self.get_client_by_address(client_addr)
-            self.card.canvas.moveto(client.visual, X, Y)
+            self.card.canvas.moveto(client.visual[0], X+self.card.copter_radius/2, Y+self.card.copter_radius/2)
+            self.card.canvas.moveto(client.visual[1], X+self.card.copter_area_radius/2, Y+self.card.copter_area_radius/2)
             print(X, Y, Z)
 
     def get_client_by_address(self, addr):
