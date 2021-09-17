@@ -127,13 +127,15 @@ class Server(NetUtils):
         # список сообщений от клиентов
         self.clients_message = []
 
-    def run_UDP(self):
+    def run_UDP(self, tasks=[]):
         while True:
             try:
                 # принимаем все сообщения. После приема сообщение и клиент записываются в список
                 data, client_addr = self.socket.recvfrom(100)
                 print("Received ", data, " from ", client_addr)
-                self.message_handler(data, client_addr)
+                command = self.message_handler(data, client_addr)
+                if len(tasks) > 0:
+                    tasks[0](command, data)
             except:
                 pass
 
@@ -154,10 +156,13 @@ class Server(NetUtils):
         # Если пришли координаты
         elif type_message == "CC":
             __, X, Y, Z, __ = struct.unpack(">2sfff1c", message)
-            client = self.get_client_by_address(client_addr)
+            #client = self.get_client_by_address(client_addr)
+            client = self.get_client_by_id(-1)
             self.card.canvas.moveto(client.visual[0], X+self.card.copter_radius/2, Y+self.card.copter_radius/2)
             self.card.canvas.moveto(client.visual[1], X+self.card.copter_area_radius/2, Y+self.card.copter_area_radius/2)
             print(X, Y, Z)
+
+        return type_message
 
     def get_client_by_address(self, addr):
         for client in self.clients:
@@ -165,6 +170,9 @@ class Server(NetUtils):
                 return client
         else:
             return None
+
+    def get_client_by_id(self, id):
+        return self.clients[id]
 
 
     #########################
@@ -202,8 +210,8 @@ class Client(NetUtils):
         self.server_message = []
         self.uart_message = []
 
-        # Текущие состояние: Wait, Flight, Arm, Search
-        self.condition = "Wait"
+        # Текущие состояние: Waiting, Moving, Armed, Landed
+        self.condition = "Waiting"
 
         # массив хранения текущих координат коптера
         self.coordinates = [0, 0, 0]
