@@ -1,4 +1,4 @@
-from SwarmUtils import Card, Server
+from swarm_sdk.SwarmUtils import Card, Server
 
 if __name__ == '__main__':
     card = Card()

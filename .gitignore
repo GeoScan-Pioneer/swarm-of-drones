@@ -1,4 +1,4 @@
 .idea/
 venv/
-test.py
-Client2.py
+__pycache__/
+test/

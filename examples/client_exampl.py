@@ -1,7 +1,6 @@
+from swarm_sdk.SwarmUtils import Client
+
 import time
-from SwarmUtils import Client
-from time import sleep
-from random import randint as rd
 import random
 
 if __name__ == '__main__':
@@ -21,7 +20,7 @@ if __name__ == '__main__':
         client.send_message(message=client.create_message_CC(x, y, 0), destination=('localhost', 8000))
         x = x + 0.1 * random.uniform(-1, 1)
         y = y + 0.1 * random.uniform(-1, 1)
-        sleep(0.25)
+        time.sleep(0.25)
 
 
 

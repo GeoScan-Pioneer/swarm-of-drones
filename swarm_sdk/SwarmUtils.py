@@ -5,8 +5,6 @@ import cv2
 import numpy as np
 import struct
 import serial
-
-import matplotlib.pyplot as plt
 import tkinter as tk
 
 from typing import List
