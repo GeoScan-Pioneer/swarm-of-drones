@@ -58,6 +58,8 @@ class Copter:
         self.addr = addr
         self.condition = None
         self.visual = visual
+        self.task_id = 0
+
 
 class NetUtils:
     def __init__(self, ip, port):
