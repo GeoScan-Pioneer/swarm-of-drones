@@ -18,14 +18,22 @@ class Server(NetUtils):
         # список сообщений от клиентов
         self.clients_message = []
 
-    def run_UDP(self):
+        self.step = 0
 
+    def next_step(self):
+        if self.step // 1 == self.step:
+            self.step += 1
+        else:
+            self.step += 0.5
+
+    def next_micro_step(self):
+        self.step += 0.5
+
+    def run_UDP(self):
         # Принимаем сообщения от сервера в отдельном потоке
         stream_for_messages = threading.Thread(target=self.accepting_messages, args=())
         stream_for_messages.daemon = True
         stream_for_messages.start()
-
-
 
      # В отдельном потоке принимаем сообщения
     def accepting_messages(self):
@@ -37,8 +45,6 @@ class Server(NetUtils):
                 self.message_handler(data, client_addr)
             except:
                 pass
-
-
 
     ###################################
     # Блок анализа принятых сообщений #
@@ -58,12 +64,10 @@ class Server(NetUtils):
         elif type_message == "CC":
             __, X, Y, Z, __ = struct.unpack(">2sfff1c", message)
             client = self.get_client_by_address(client_addr)
-            client = self.get_client_by_id(-1)
+            #client = self.get_client_by_id(-1)
             self.card.canvas.moveto(client.visual[0], X+self.card.copter_radius/2, Y+self.card.copter_radius/2)
             self.card.canvas.moveto(client.visual[1], X+self.card.copter_area_radius/2, Y+self.card.copter_area_radius/2)
             print(X, Y, Z)
-
-
 
     def get_client_by_address(self, addr):
         for client in self.clients:
@@ -91,7 +95,6 @@ class Server(NetUtils):
                 if dist <= 1:
                     distances.append((i, j, dist))
         return distances
-
 
     #########################
     # Блок тестовых функций #
