@@ -66,7 +66,6 @@ class NetUtils:
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 
-        #self.socket.settimeout(1)
         self.socket.setblocking(0)  # отключение блокировки при приеме сообщений
 
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -82,27 +81,27 @@ class NetUtils:
         self.socket.sendto(message, destination)
 
     # Magnet Reset
-    def create_message_MR(self):
+    def create_message_Magnet_Reset(self):
         return struct.pack(">2s1c", b'MR', b"\n")
 
     # COPTER_LAND
-    def create_message_CL(self):
+    def create_message_COPTER_LAND(self):
         return struct.pack(">2s1c", b'CL', b"\n")
 
     # COPTER_ARM
-    def create_message_CA(self):
+    def create_message_COPTER_ARM(self):
         return struct.pack(">2s1c", b'CA', b"\n")
 
     # COPTER_DISARM
-    def create_message_CD(self):
+    def create_message_COPTER_DISARM(self):
         return struct.pack(">2s1c", b'CD', b"\n")
 
     # New Coordinates + X + Y + Z
-    def create_message_NC(self, X, Y, Z):
+    def create_message_New_Coordinates(self, X, Y, Z):
         return struct.pack(">2sfff1c", b'NC', X, Y, Z, b"\n")
 
     # Set Leds
-    def create_message_SL(self, R, G, B):
+    def create_message_Set_Leds(self, R, G, B):
         return struct.pack(">2sfff1c", b'SL', R, G, B, b"\n")
 
     # Search in area. Предаются координаты двух точек прямоугольника
@@ -112,6 +111,16 @@ class NetUtils:
     # Search in pont. Предаются координаты точки
     def create_message_SP(self, X, Y, Z):
         return struct.pack(">2sfff1c", b'SP', X, Y, Z, b"\n")
+
+
+    # Start Communication
+    def create_message_Start_Communication(self):
+        return struct.pack(">2s1c", b'SC', b"\n")
+
+    # координаты коптера для отправки на сервер
+    def create_message_Copter_Coordinates(self, X, Y, Z):
+        return struct.pack(">2sfff1c", b'CC', X, Y, Z, b"\n")
+
 
     # разбираем пришедшее сообщение
     def message_parser(self, message):

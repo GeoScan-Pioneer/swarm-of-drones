@@ -1,4 +1,4 @@
-from SwarmUtils import NetUtils, Copter, Card
+from swarm_sdk.SwarmUtils import NetUtils
 from typing import List
 
 import time
@@ -46,6 +46,8 @@ class Client(NetUtils):
         stream_for_messages.daemon = True
         stream_for_messages.start()
 
+        # Отправка стартового сообщения
+        self.send_message(message=self.create_message_Start_Communication(), destination=('localhost', 8000))
 
     # В отдельном потоке принимаем сообщения
     def accepting_messages(self):
@@ -79,14 +81,6 @@ class Client(NetUtils):
     # Блок отправления,создания и обработки сообщений #
     ###################################################
 
-    # Start Communication
-    def create_message_SC(self):
-        return struct.pack(">2s1c", b'SC', b"\n")
-
-    # координаты коптера для отправки на сервер
-    def create_message_CC(self, X, Y, Z):
-        return struct.pack(">2sfff1c", b'CC', X, Y, Z, b"\n")
-
     # отправить сообщение по юарту
     def send_message_uart(self, message):
         self.uart.write(message)
@@ -108,17 +102,17 @@ class Client(NetUtils):
                 if type_message == 'CA':
                     """выполнить предстартовую подготовку"""
                     print("Получено сообщение CA")
-                    self.send_message_uart(message=self.create_message_CA())
+                    self.send_message_uart(message=self.create_message_COPTER_ARM())
 
                 elif type_message == "CL":
                     """выполнить посадку"""
                     print("Получено сообщение CL")
-                    self.send_message_uart(message=self.create_message_CL())
+                    self.send_message_uart(message=self.create_message_COPTER_LAND())
 
                 elif type_message == "CD":
                     """выполнить посадку"""
                     print("Получено сообщение CD")
-                    self.send_message_uart(message=self.create_message_CD())
+                    self.send_message_uart(message=self.create_message_COPTER_DISARM())
 
                 elif type_message == "MR":
                     """выполнить сброс груза"""
@@ -130,13 +124,13 @@ class Client(NetUtils):
                     # отправляем по юарту координаты и меняем состояние коптера
                     print("Получено сообщение NC", X, Y, Z)
                     self.condition = "Flight"
-                    self.send_message_uart(message=self.create_message_NC(X, Y, Z))
+                    self.send_message_uart(message=self.create_message_New_Coordinates(X, Y, Z))
 
                 elif type_message == 'SL':
                     __, __, R, G, B, __ = struct.unpack(">2cfff1c", message)
                     # отправляем по юарту команду и меняем состояние коптера
                     print("Получено сообщение SL", R, G, B)
-                    self.send_message_uart(message=self.create_message_SL(R, G, B))
+                    self.send_message_uart(message=self.create_message_Set_Leds(R, G, B))
 
                 elif type_message == 'SA':
                     __, __, X1, Y1, X2, Y2, __ = struct.unpack(">2sffff1c", message)
@@ -157,7 +151,7 @@ class Client(NetUtils):
                     __, __, X, Y, Z, __ = struct.unpack(">2cfff1c", message)
 
                     # Генерируем сообщение
-                    # self.send_message_server(message=self.create_message_CC(X, Y, Z))
+                    self.send_message(message=self.create_message_Copter_Coordinates(X, Y, Z))
 
     ###################################
     ###### Алгоритмы управления #######

@@ -1,4 +1,4 @@
-from SwarmUtils import NetUtils, Copter, Card
+from swarm_sdk.SwarmUtils import NetUtils, Copter, Card
 from typing import List
 
 import time
@@ -100,19 +100,19 @@ class Server(NetUtils):
     def test_message(self):
         while True:
             if len(self.clients) > 0:
-                self.send_message(destination=self.clients[0].addr, message=self.create_message_CA())
+                self.send_message(destination=self.clients[0].addr, message=self.create_message_COPTER_ARM())
                 time.sleep(2)
 
-                self.send_message(destination=self.clients[0].addr, message=self.create_message_CL())
+                self.send_message(destination=self.clients[0].addr, message=self.create_message_COPTER_LAND())
                 time.sleep(2)
 
-                self.send_message(destination=self.clients[0].addr, message=self.create_message_CD())
+                self.send_message(destination=self.clients[0].addr, message=self.create_message_COPTER_DISARM())
                 time.sleep(2)
 
-                self.send_message(destination=self.clients[0].addr, message=self.create_message_NC(10.30, 49.33, 1.00))
+                self.send_message(destination=self.clients[0].addr, message=self.create_message_New_Coordinates(10.30, 49.33, 1.00))
                 time.sleep(2)
 
-                self.send_message(destination=self.clients[0].addr, message=self.create_message_SL(0.30, 0.33, 1.00))
+                self.send_message(destination=self.clients[0].addr, message=self.create_message_Set_Leds(0.30, 0.33, 1.00))
 
                 time.sleep(2)
 
