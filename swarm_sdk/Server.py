@@ -65,8 +65,8 @@ class Server(NetUtils):
             __, X, Y, Z, __ = struct.unpack(">2sfff1c", message)
             client = self.get_client_by_address(client_addr)
             #client = self.get_client_by_id(-1)
-            self.card.canvas.moveto(client.visual[0], X+self.card.copter_radius/2, Y+self.card.copter_radius/2)
-            self.card.canvas.moveto(client.visual[1], X+self.card.copter_area_radius/2, Y+self.card.copter_area_radius/2)
+            self.card.canvas.moveto(client.visual[0], *self.card.cm_to_px(X, Y, 1))
+            self.card.canvas.moveto(client.visual[1], *self.card.cm_to_px(X, Y, 2))
             print(X, Y, Z)
 
         # Если задача завершена
