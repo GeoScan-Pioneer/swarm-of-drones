@@ -70,6 +70,7 @@ class Copter:
     def task_complete_state_set(self):
         self.__task_complete_state = True
 
+
 class NetUtils:
     def __init__(self, ip, port):
         self.ip = ip
@@ -122,7 +123,6 @@ class NetUtils:
     # Search in pont. Предаются координаты точки
     def create_message_SP(self, X, Y, Z):
         return struct.pack(">2sfff1c", b'SP', X, Y, Z, b"\n")
-
 
     # Start Communication
     def create_message_Start_Communication(self):
