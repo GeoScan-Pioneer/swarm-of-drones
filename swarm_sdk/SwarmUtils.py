@@ -59,7 +59,16 @@ class Copter:
         self.condition = None
         self.visual = visual
         self.task_id = 0
+        self.__task_complete_state = None
 
+    def task_complete_state(self):
+        return self.__task_complete_state
+
+    def task_complete_state_reset(self):
+        self.__task_complete_state = None
+
+    def task_complete_state_set(self):
+        self.__task_complete_state = True
 
 class NetUtils:
     def __init__(self, ip, port):
@@ -123,6 +132,8 @@ class NetUtils:
     def create_message_Copter_Coordinates(self, X, Y, Z):
         return struct.pack(">2sfff1c", b'CC', X, Y, Z, b"\n")
 
+    def create_message_Task_Completed(self, task_id=-1):
+        return struct.pack(">2si1c", b'TC', task_id, b"\n")
 
     # разбираем пришедшее сообщение
     def message_parser(self, message):

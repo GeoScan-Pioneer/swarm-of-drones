@@ -23,6 +23,9 @@ class Client(NetUtils):
         # Текущие состояние: Waiting, Moving, Armed, Landed
         self.condition = "Waiting"
 
+        self.task_id = 0
+        self.__task_complete_state = None
+
         # массив хранения текущих координат коптера
         self.coordinates = [0, 0, 0]
         # координаты дома (берутся при взлете)
@@ -39,6 +42,15 @@ class Client(NetUtils):
         # Параметры для поиска aruco
         self.DICTIONARY = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
         self.PARAMETERS = cv2.aruco.DetectorParameters_create()
+
+    def task_complete_state(self):
+        return self.__task_complete_state
+
+    def task_complete_state_reset(self):
+        self.__task_complete_state = None
+
+    def task_complete_state_set(self):
+        self.__task_complete_state = True
 
     def run_UDP(self):
         # Принимаем сообщения от сервера в отдельном потоке
@@ -63,8 +75,8 @@ class Client(NetUtils):
             try:
                 # считываем полученное сообщение
                 data, __ = self.socket.recvfrom(100)
-                self.message_handler()
                 self.server_message.append(data)  # сохраняем полученное сообщение в список
+                self.message_handler()
             except:
                 #print("Ошибка приема сообщений от сервера")
                 pass
@@ -90,68 +102,76 @@ class Client(NetUtils):
     # Блок анализа принятых сообщений #
     ###################################
     def message_handler(self):
-        while True:
-            # ---------------------------------------
-            # Если есть принятое сообщение от сервера
-            # ---------------------------------------
-            if len(self.server_message) > 0:
-                # считываем сообщение, удаляем его и определяем его тип
-                message = self.server_message.pop(0)
-                type_message = self.message_parser(message)
-                # команда ARM
-                if type_message == 'CA':
-                    """выполнить предстартовую подготовку"""
-                    print("Получено сообщение CA")
-                    self.send_message_uart(message=self.create_message_COPTER_ARM())
+        # while True:
+        # ---------------------------------------
+        # Если есть принятое сообщение от сервера
+        # ---------------------------------------
+        if len(self.server_message) > 0:
+            # считываем сообщение, удаляем его и определяем его тип
+            message = self.server_message.pop(0)
+            type_message = self.message_parser(message)
+            # команда ARM
+            if type_message == 'CA':
+                """выполнить предстартовую подготовку"""
+                print("Получено сообщение CA")
+                self.send_message_uart(message=self.create_message_COPTER_ARM())
 
-                elif type_message == "CL":
-                    """выполнить посадку"""
-                    print("Получено сообщение CL")
-                    self.send_message_uart(message=self.create_message_COPTER_LAND())
+            elif type_message == "CL":
+                """выполнить посадку"""
+                print("Получено сообщение CL")
+                self.send_message_uart(message=self.create_message_COPTER_LAND())
 
-                elif type_message == "CD":
-                    """выполнить посадку"""
-                    print("Получено сообщение CD")
-                    self.send_message_uart(message=self.create_message_COPTER_DISARM())
+            elif type_message == "CD":
+                """выполнить посадку"""
+                print("Получено сообщение CD")
+                self.send_message_uart(message=self.create_message_COPTER_DISARM())
 
-                elif type_message == "MR":
-                    """выполнить сброс груза"""
-                    print("Получено сообщение MR")
+            elif type_message == "MR":
+                """выполнить сброс груза"""
+                print("Получено сообщение MR")
 
-                # Если пришли новые координаты для коптера
-                elif type_message == 'NC':
-                    __, __, X, Y, Z, __ = struct.unpack(">2cfff1c", message)
-                    # отправляем по юарту координаты и меняем состояние коптера
-                    print("Получено сообщение NC", X, Y, Z)
-                    self.condition = "Flight"
-                    self.send_message_uart(message=self.create_message_New_Coordinates(X, Y, Z))
+            # Если пришли новые координаты для коптера
+            elif type_message == 'NC':
+                __, __, X, Y, Z, __ = struct.unpack(">2cfff1c", message)
+                # отправляем по юарту координаты и меняем состояние коптера
+                print("Получено сообщение NC", X, Y, Z)
+                self.condition = "Moving"
+                #self.send_message_uart(message=self.create_message_New_Coordinates(X, Y, Z))
 
-                elif type_message == 'SL':
-                    __, __, R, G, B, __ = struct.unpack(">2cfff1c", message)
-                    # отправляем по юарту команду и меняем состояние коптера
-                    print("Получено сообщение SL", R, G, B)
-                    self.send_message_uart(message=self.create_message_Set_Leds(R, G, B))
+                ### ДЛЯ ТЕСТА!!!!! ОБЯЗАТЕЛЬНО УДАЛИТЬ!!!!!!!!!! ###
+                time.sleep(3)
+                print("Выполнено")
+                self.task_complete_state_set()
+                self.condition = "Waiting"
+                self.send_message(('localhost', 8000), self.create_message_Task_Completed())
+                ####################################################
 
-                elif type_message == 'SA':
-                    __, __, X1, Y1, X2, Y2, __ = struct.unpack(">2sffff1c", message)
-                    self.condition = "Search"
-                    pass
+            elif type_message == 'SL':
+                __, __, R, G, B, __ = struct.unpack(">2cfff1c", message)
+                # отправляем по юарту команду и меняем состояние коптера
+                print("Получено сообщение SL", R, G, B)
+                self.send_message_uart(message=self.create_message_Set_Leds(R, G, B))
 
-            # -------------------------------------
-            # Если есть принятое сообщение из юарта
-            # -------------------------------------
-            if len(self.uart_message) > 0:
-                # считываем сообщение и удаляем его
-                message = self.uart_message.pop(0)
-                type_message = self.message_parser(message)
+            elif type_message == 'SA':
+                __, __, X1, Y1, X2, Y2, __ = struct.unpack(">2sffff1c", message)
+                self.condition = "Search"
+                pass
 
-                # Если сообщение с координатами, то определяем их и отправляем на сервер
-                if type_message == "CC":
-                    print(1)
-                    __, __, X, Y, Z, __ = struct.unpack(">2cfff1c", message)
+        # -------------------------------------
+        # Если есть принятое сообщение из юарта
+        # -------------------------------------
+        if len(self.uart_message) > 0:
+            # считываем сообщение и удаляем его
+            message = self.uart_message.pop(0)
+            type_message = self.message_parser(message)
 
-                    # Генерируем сообщение
-                    self.send_message(message=self.create_message_Copter_Coordinates(X, Y, Z))
+            # Если сообщение с координатами, то определяем их и отправляем на сервер
+            if type_message == "CC":
+                print(1)
+                __, __, X, Y, Z, __ = struct.unpack(">2cfff1c", message)
+
+                # Генерируем сообщение
+                self.send_message(message=self.create_message_Copter_Coordinates(X, Y, Z))
 
     ###################################
     ###### Алгоритмы управления #######

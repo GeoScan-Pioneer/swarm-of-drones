@@ -69,6 +69,10 @@ class Server(NetUtils):
             self.card.canvas.moveto(client.visual[1], X+self.card.copter_area_radius/2, Y+self.card.copter_area_radius/2)
             print(X, Y, Z)
 
+        # Если задача завершена
+        elif type_message == "TC":
+            self.get_client_by_address(client_addr).task_complete_state_set()
+
     def get_client_by_address(self, addr):
         for client in self.clients:
             if client.addr == addr:

@@ -14,8 +14,8 @@ if __name__ == '__main__':
     x = random.randint(30, 300)
     y = random.randint(30, 300)
     while True:
-        print(x, y)
-        client.send_message(message=client.create_message_Copter_Coordinates(x, y, 1), destination=('localhost', 8000))
+        # print(x, y)
+        #client.send_message(message=client.create_message_Copter_Coordinates(x, y, 1), destination=('localhost', 8000))
         x = x + 0.1 * random.uniform(-1, 1)
         y = y + 0.1 * random.uniform(-1, 1)
         time.sleep(0.25)
