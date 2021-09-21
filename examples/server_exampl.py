@@ -5,7 +5,7 @@ from swarm_sdk.SwarmUtils import Card
 
 
 if __name__ == '__main__':
-    card = Card()
+    card = Card(width_cm=700, height_cm=700)
     server = Server(ip_server='localhost', port_serer=8000, card=card)
     server.run_UDP()
 
