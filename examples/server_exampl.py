@@ -4,20 +4,62 @@ from swarm_sdk.Server import Server
 from swarm_sdk.SwarmUtils import Card
 
 
+#----------------------------------------------------------------------------------------------
+# операция разведки в виде полета по квадрату
+trajectory = ((1, 1, 1),
+              (1, 5, 1),
+              (5, 5, 1),
+              (5, 1, 1),
+              (1, 1, 1) )
+
+# список координат найденных объектов
+coord_object = []
+
+def copter1(client1):
+
+    """ Отправляем сообщение для полета в точку  trajectory[step]"""
+    # на коптере разбиваем полет из текущей в заданную точку на n отрезков.
+    # По достижению финала отправляем разрешение на увеличение индекса в траектории
+
+    if """пришли координаты объекта""":
+        coord_object.append(""" координаты""")
+
+
+    if """ функция проверки флага point_reached """:
+        # какая-нибудь server.copter.get_point_reached, которая при вызове сбрасывает у себя флаг и возвращает его сюда
+        step = step + 1
+
+# ----------------------------------------------------------------------------------------------
+
+# летит в найденную метку
+def copter2(client2):
+
+    if len(coord_object) == 0:
+        return
+
+    """ Отправляем сообщение для полета в точку coord_object[0] """
+
+    if """ функция проверки флага point_reached """:
+       # возвращаемся домой
+
+
+# ----------------------------------------------------------------------------------------------
+
+
 if __name__ == '__main__':
     card = Card(width_cm=700, height_cm=700)
     server = Server(ip_server='localhost', port_serer=8000, card=card)
     server.run_UDP()
 
+
     while True:
-        if len(server.clients) > 0:
-            if server.step == 0:
-                server.send_message(server.clients[0].addr, server.create_message_New_Coordinates(20, 20, 1))
-                server.next_micro_step()
-            if server.step == 0.5:
-                if server.clients[0].task_complete_state():
-                    server.clients[0].task_complete_state_reset()
-                    server.next_micro_step()
-            if server.step == 1:
-                server.send_message(server.clients[0].addr, server.create_message_Set_Leds(255, 0, 0))
-                server.next_step()
+
+        # опрашиваем событие о столкновении коптеров
+        if len(server.check_min_distance(min_distance=1)) != 0:
+            # Вносим корректировки в траекторию нужных коптеров
+            # Генерируем сообщение о необходимости сместиться с высоким приоритетом
+            # соответственно на коптере нужно иметь список с тем, что нужно выполнить прямо сейчас, а что после
+
+
+        copter1(server.clients[0])
+        copter2(server.clients[1])
