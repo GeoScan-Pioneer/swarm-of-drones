@@ -83,15 +83,27 @@ class Server(NetUtils):
     def __dist(self, p1, p2):
         return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5
 
-    def check_min_distance(self):
-        distances = []
+    # передается минимально допустимое расстояние
+    def check_min_distance(self, min_distance):
+        ind_copters = []
         for i in range(len(self.clients)):
             for j in range(i + 1, len(self.clients)):
                 dist = self.__dist(self.clients[i].coordinates_copter[0], self.clients[j].coordinates_copter[0])
-                if dist <= 1:
-                    distances.append((i, j, dist))
-        return distances
+                if dist <= min_distance:
+                    ind_copters.append((i, j))
+        return ind_copters
 
+    def main(self):
+        """ Проверка минимального расстояния """
+        ind_copters = self.check_min_distance(min_distance=1.5)
+
+        if len(ind_copters) != 0:
+            pass
+        """ Отправка корректировок по итогам проверки расстояний"""
+
+        """ Проверка состояния каждого дрона"""
+
+        """ Перераспределение ролей, если состояния не удовлетворяют желаемым"""
 
     #########################
     # Блок тестовых функций #

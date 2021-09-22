@@ -175,3 +175,17 @@ class Client(NetUtils):
         if ids is None:
             return None
         return ids
+
+
+    def main_0(self):
+        """Управление коптером 0"""
+
+
+    def main_1(self):
+        """Управление коптером 1"""
+
+    def main_2(self):
+        """Управление коптером 2"""
+
+    def main_3(self):
+        """Управление коптером 3"""
