@@ -101,7 +101,6 @@ class Server(NetUtils):
                     ind_copters.append((i, j))
         return ind_copters
 
-<<<<<<< HEAD
     def main(self):
         """ Проверка минимального расстояния """
         ind_copters = self.check_min_distance(min_distance=1.5)
@@ -114,8 +113,7 @@ class Server(NetUtils):
 
         """ Перераспределение ролей, если состояния не удовлетворяют желаемым"""
 
-=======
->>>>>>> development-2
+
     #########################
     # Блок тестовых функций #
     #########################
