@@ -23,9 +23,6 @@ class Client(NetUtils):
         # Текущие состояние: Waiting, Moving, Armed, Landed
         self.condition = "Waiting"
 
-        self.task_id = 0
-        self.__task_complete_state = None
-
         # массив хранения текущих координат коптера
         self.coordinates = [0, 0, 0]
         # координаты дома (берутся при взлете)
@@ -42,15 +39,6 @@ class Client(NetUtils):
         # Параметры для поиска aruco
         self.DICTIONARY = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
         self.PARAMETERS = cv2.aruco.DetectorParameters_create()
-
-    def task_complete_state(self):
-        return self.__task_complete_state
-
-    def task_complete_state_reset(self):
-        self.__task_complete_state = None
-
-    def task_complete_state_set(self):
-        self.__task_complete_state = True
 
     def run_UDP(self):
         # Принимаем сообщения от сервера в отдельном потоке
@@ -141,7 +129,6 @@ class Client(NetUtils):
                 ### ДЛЯ ТЕСТА!!!!! ОБЯЗАТЕЛЬНО УДАЛИТЬ!!!!!!!!!! ###
                 time.sleep(3)
                 print("Выполнено")
-                self.task_complete_state_set()
                 self.condition = "Waiting"
                 self.send_message(('localhost', 8000), self.create_message_Task_Completed())
                 ####################################################
