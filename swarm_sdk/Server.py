@@ -29,11 +29,66 @@ class Server(NetUtils):
     def next_micro_step(self):
         self.step += 0.5
 
+    def wait_for_task_completion(self, step, ands=[], ors=[], together=False, send_stop_message=False):
+        if self.step == step:
+            ands_state = True
+            ors_state = False
+
+            for i in ands:
+                # print(i)
+                if type(i) is int:
+                    state = self.clients[i].task_complete_state()
+                else:
+                    state = self.get_client_by_address(i).task_complete_state_set()
+                if state is None:
+                    state = False
+                ands_state = ands_state and state
+
+            for i in ors:
+                if type(i) is int:
+                    state = self.clients[i].task_complete_state()
+                else:
+                    state = self.get_client_by_address(i).task_complete_state_set()
+                if state is None:
+                    state = False
+                ors_state = ors_state and state
+
+            def __send():
+                for i in ors:
+                    if type(i) is int:
+                        client = self.clients[i].addr
+                    else:
+                        client = self.get_client_by_address(i).addr
+                    self.send_message(client, self.create_message_Task_Skip())
+                for i in ands:
+                    if type(i) is int:
+                        client = self.clients[i].addr
+                    else:
+                        client = self.get_client_by_address(i).addr
+                    self.send_message(client, self.create_message_Task_Skip())
+
+            if not together:
+                if ands_state or ors_state:
+                    self.next_micro_step()
+                    if send_stop_message:
+                        __send()
+            else:
+                if ands_state and ors_state:
+                    self.next_micro_step()
+                    if send_stop_message:
+                        __send()
+
+
     def run_UDP(self):
         # Принимаем сообщения от сервера в отдельном потоке
         stream_for_messages = threading.Thread(target=self.accepting_messages, args=())
         stream_for_messages.daemon = True
         stream_for_messages.start()
+
+    def send_message(self, destination, message, callback=False):
+        if callback:
+            self.get_client_by_address(destination).task_complete_state_set(False)
+        super().send_message(destination, message)
 
      # В отдельном потоке принимаем сообщения
     def accepting_messages(self):
@@ -41,7 +96,7 @@ class Server(NetUtils):
             try:
                 # принимаем все сообщения. После приема сообщение и клиент записываются в список
                 data, client_addr = self.socket.recvfrom(100)
-                print("Received ", data, " from ", client_addr)
+                #print("Received ", data, " from ", client_addr)
                 self.message_handler(data, client_addr)
             except:
                 pass
@@ -67,11 +122,13 @@ class Server(NetUtils):
             #client = self.get_client_by_id(-1)
             self.card.canvas.moveto(client.visual[0], *self.card.cm_to_px(X, Y, 1))
             self.card.canvas.moveto(client.visual[1], *self.card.cm_to_px(X, Y, 2))
-            print(X, Y, Z)
+            #print(X, Y, Z)
 
         # Если задача завершена
         elif type_message == "TC":
-            self.get_client_by_address(client_addr).task_complete_state_set()
+            client = self.get_client_by_address(client_addr)
+            client.task_complete_state_set(True)
+            print("TASK COMPLETED")
 
     def get_client_by_address(self, addr):
         for client in self.clients:
