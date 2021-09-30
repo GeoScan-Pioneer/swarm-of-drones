@@ -99,7 +99,6 @@ class Copter:
         self.addr = addr
         self.condition = None
         self.visual = visual
-        self.task_id = 0
         self.__task_complete_state = None
 
     def task_complete_state(self):
@@ -108,8 +107,13 @@ class Copter:
     def task_complete_state_reset(self):
         self.__task_complete_state = None
 
-    def task_complete_state_set(self):
-        self.__task_complete_state = True
+    def task_complete_state_set(self, state):
+        if type(state) is not bool:
+            print("Error! You have been set not a boolean value to the completion state of a task of the copter!")
+            print("Your value has been overwritten to 'False'")
+            self.__task_complete_state = False
+        else:
+            self.__task_complete_state = state
 
 
 class NetUtils:
@@ -173,8 +177,11 @@ class NetUtils:
     def create_message_Copter_Coordinates(self, X, Y, Z):
         return struct.pack(">2sfff1c", b'CC', X, Y, Z, b"\n")
 
-    def create_message_Task_Completed(self, task_id=-1):
-        return struct.pack(">2si1c", b'TC', task_id, b"\n")
+    def create_message_Task_Completed(self):
+        return struct.pack(">2s1c", b'TC', b"\n")
+
+    def create_message_Task_Skip(self):
+        return struct.pack(">2s1c", b'TS', b"\n")
 
     # разбираем пришедшее сообщение
     def message_parser(self, message):
