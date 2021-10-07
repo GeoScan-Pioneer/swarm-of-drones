@@ -95,7 +95,7 @@ class Card(threading.Thread):
 class Copter:
     def __init__(self, num_copter, addr, visual):
         self.num_copter = num_copter
-        self.coordinates_copter = [(0, 0), 0]
+        self.coords = (0, 0, 0)
         self.addr = addr
         self.condition = None
         self.visual = visual
