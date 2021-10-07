@@ -5,6 +5,7 @@ import time
 import threading
 import struct
 
+
 class Server(NetUtils):
     """ Сервер """
     def __init__(self, ip_server, port_serer, card, number=4):
@@ -78,7 +79,6 @@ class Server(NetUtils):
                     if send_stop_message:
                         __send()
 
-
     def run_UDP(self):
         # Принимаем сообщения от сервера в отдельном потоке
         stream_for_messages = threading.Thread(target=self.accepting_messages, args=())
@@ -148,14 +148,13 @@ class Server(NetUtils):
     def __dist(self, p1, p2):
         return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5
 
-    def check_min_distance(self):
-        distances = []
-        for i in range(len(self.clients)):
-            for j in range(i + 1, len(self.clients)):
-                dist = self.__dist(self.clients[i].coordinates_copter[0], self.clients[j].coordinates_copter[0])
-                if dist <= 1:
-                    distances.append((i, j, dist))
-        return distances
+    def check_distances(self):
+        dangerous_distances = []
+        for client1, cid1 in enumerate(self.clients):
+            for client2, cid2 in enumerate(self.clients[cid1:]):
+                if self.__dist(client1.coords, client2.coords):
+                    dangerous_distances.append([(client1, cid1), (client2, cid2)])
+        return dangerous_distances
 
     #########################
     # Блок тестовых функций #
