@@ -16,3 +16,9 @@ class Copter(Pioneer):
         self.coordinates = [0, 0, 0]
         # координаты дома (берутся при взлете)
         self.home = [0, 0, 0]
+
+    def get_task_completion_state(self):
+        if super(Copter, self).command_id == 0:
+            return True
+        else:
+            return False
